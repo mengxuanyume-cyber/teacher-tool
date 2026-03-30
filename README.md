@@ -1,1 +1,1136 @@
-# teacher-tool
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>日语教学助手 | 多教师版</title>
+    <!-- SheetJS 导出 Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js 绘制成绩曲线 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #f0f7ff;
+            margin: 0;
+            padding: 12px;
+            min-height: 100vh;
+        }
+        /* 登录/注册界面 */
+        .auth-container {
+            max-width: 400px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 32px;
+            padding: 28px 24px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .auth-container h2 {
+            color: #1e4a6b;
+            margin-bottom: 24px;
+        }
+        .auth-container input {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border-radius: 48px;
+            border: 1px solid #cbd5e1;
+            font-size: 1rem;
+        }
+        .auth-container button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 48px;
+            background: #2c6e9e;
+            color: white;
+            border: none;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        .auth-container .toggle-btn {
+            background: #eef2ff;
+            color: #1e4a6b;
+        }
+        .error-msg {
+            color: #b91c1c;
+            font-size: 0.85rem;
+            margin: 8px 0;
+        }
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+            overflow-x: auto;
+            padding: 16px 18px 28px;
+            display: none;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e2edf2;
+            padding-bottom: 16px;
+        }
+        .user-info {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logout-btn {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 32px;
+            font-size: 0.8rem;
+        }
+        .class-section {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            background: #f8fafc;
+            padding: 6px 14px;
+            border-radius: 48px;
+        }
+        select, button, input[type="date"] {
+            padding: 10px 14px;
+            border-radius: 48px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        button.primary {
+            background: #2c6e9e;
+            color: white;
+            border: none;
+        }
+        button.danger {
+            background: #ffe6e5;
+            color: #b91c1c;
+            border-color: #fecaca;
+        }
+        .add-student-btn {
+            background: #e6f7e6;
+            border-color: #b2d8a8;
+            color: #2e6b2f;
+        }
+        .backup-btn {
+            background: #e6f7e6;
+            border-color: #b2d8a8;
+            color: #2e6b2f;
+        }
+        .restore-btn {
+            background: #fff3e0;
+            border-color: #ffd966;
+            color: #b85c00;
+        }
+        /* 搜索区域样式 */
+        .search-area {
+            background: #f8fafc;
+            border-radius: 28px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 16px;
+        }
+        .search-group {
+            flex: 1;
+            min-width: 180px;
+        }
+        .search-group label {
+            font-size: 0.75rem;
+            color: #5b6e8c;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .search-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 40px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.85rem;
+        }
+        .search-group .search-btn {
+            margin-top: 8px;
+            width: 100%;
+            background: #eef2ff;
+            border: none;
+            padding: 8px;
+        }
+        .student-result {
+            background: #fff;
+            border-radius: 20px;
+            padding: 10px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            border: 1px solid #e2e8f0;
+        }
+        .student-result-item {
+            padding: 6px 0;
+            border-bottom: 1px solid #eef2f8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .student-result-item:last-child {
+            border-bottom: none;
+        }
+        .class-link {
+            color: #2c6e9e;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-left: 8px;
+            background: none;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: #eef2ff;
+            font-size: 0.7rem;
+        }
+        .home-btn {
+            background: #e6f7e6;
+            border-color: #b2d8a8;
+            color: #2e6b2f;
+            padding: 10px 16px;
+            border-radius: 48px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .student-table-wrapper {
+            overflow-x: auto;
+            margin: 12px 0 10px;
+            border-radius: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            min-width: 800px;
+        }
+        th {
+            background: #eef3fc;
+            padding: 12px 6px;
+            text-align: center;
+            font-weight: 600;
+            color: #1e405e;
+        }
+        td {
+            padding: 10px 6px;
+            text-align: center;
+            border-bottom: 1px solid #e9eef3;
+        }
+        .student-name-cell {
+            background: #fefce8;
+            min-width: 110px;
+        }
+        .name-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            padding: 6px;
+            color: #5b6e8c;
+            cursor: pointer;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 8px 4px;
+            border-radius: 28px;
+            text-align: center;
+        }
+        .action-btns {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .small-btn {
+            padding: 6px 12px;
+            font-size: 0.7rem;
+            border-radius: 32px;
+            background: #f1f5f9;
+            white-space: nowrap;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            width: 94%;
+            max-width: 750px;
+            max-height: 85vh;
+            border-radius: 36px;
+            padding: 20px 18px;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .detail-section {
+            margin-bottom: 28px;
+            background: #fafcff;
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .detail-section h4 {
+            margin: 0 0 12px 0;
+            font-size: 1.1rem;
+            color: #1e4a6b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mini-table {
+            width: 100%;
+            font-size: 0.75rem;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .mini-table th, .mini-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #e9edf2;
+            text-align: left;
+            vertical-align: top;
+        }
+        .mini-table th {
+            background: #eef2f8;
+        }
+        .remark-input {
+            width: 100%;
+            min-width: 100px;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 6px 8px;
+            font-size: 0.7rem;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 20px;
+            padding: 8px;
+            margin-top: 10px;
+        }
+        canvas {
+            max-height: 220px;
+            width: 100%;
+        }
+        @media (max-width: 640px) {
+            .app-container { padding: 12px; }
+            .small-btn { padding: 8px 10px; }
+            .modal-content { padding: 16px; }
+            .remark-input { min-width: 80px; }
+            .search-area { flex-direction: column; align-items: stretch; }
+            .search-group { width: 100%; }
+            .toolbar { gap: 8px; }
+            .backup-btn, .restore-btn { padding: 8px 12px; font-size: 0.75rem; }
+        }
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 24px;
+            color: #6c86a3;
+        }
+        .export-class-btn {
+            background: #1e6f5c;
+            color: white;
+            border: none;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        .form-row label {
+            width: 85px;
+            font-weight: 500;
+        }
+        .readonly-input {
+            background-color: #f0f2f5;
+            cursor: default;
+        }
+        /* 隐藏文件上传输入框 */
+        #restoreFileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录注册界面 -->
+    <div id="authPanel" class="auth-container">
+        <h2><i class="fas fa-chalkboard-teacher"></i> 教师助手</h2>
+        <div id="loginForm">
+            <input type="text" id="loginUsername" placeholder="用户名" autocomplete="username">
+            <input type="password" id="loginPassword" placeholder="密码" autocomplete="current-password">
+            <button id="loginBtn">登录</button>
+            <button id="showRegisterBtn" class="toggle-btn">注册新账号</button>
+            <div id="loginError" class="error-msg"></div>
+        </div>
+        <div id="registerForm" style="display:none;">
+            <input type="text" id="regUsername" placeholder="用户名" autocomplete="off">
+            <input type="password" id="regPassword" placeholder="密码" autocomplete="new-password">
+            <input type="password" id="regConfirm" placeholder="确认密码">
+            <button id="registerBtn">注册</button>
+            <button id="showLoginBtn" class="toggle-btn">返回登录</button>
+            <div id="regError" class="error-msg"></div>
+        </div>
+    </div>
+
+    <!-- 主应用界面 -->
+    <div id="mainApp" class="app-container">
+        <div class="toolbar">
+            <div class="class-section">
+                <label><i class="fas fa-chalkboard-user"></i> 班级</label>
+                <select id="classSelect"></select>
+                <button id="newClassBtn" class="primary"><i class="fas fa-plus"></i> 新建</button>
+                <button id="deleteClassBtn" class="danger"><i class="fas fa-trash"></i> 删除</button>
+            </div>
+            <div>
+                <input type="date" id="recordDate" class="date-picker">
+            </div>
+            <button id="addStudentBtn" class="add-student-btn"><i class="fas fa-user-plus"></i> 添加学生</button>
+            <button id="exportClassBtn" class="export-class-btn"><i class="fas fa-file-excel"></i> 导出班级</button>
+            <button id="backupDataBtn" class="backup-btn"><i class="fas fa-download"></i> 备份数据</button>
+            <button id="restoreDataBtn" class="restore-btn"><i class="fas fa-upload"></i> 恢复数据</button>
+            <div class="user-info">
+                <span id="currentUserDisplay"></span>
+                <button id="logoutBtn" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出</button>
+            </div>
+        </div>
+
+        <!-- 搜索区域 -->
+        <div class="search-area">
+            <div class="search-group">
+                <label><i class="fas fa-search"></i> 搜索班级</label>
+                <input type="text" id="searchClassInput" placeholder="输入班级名称" list="classListDatalist">
+                <datalist id="classListDatalist"></datalist>
+                <button id="searchClassBtn" class="search-btn">搜索班级</button>
+            </div>
+            <div class="search-group">
+                <label><i class="fas fa-user-graduate"></i> 搜索学员</label>
+                <input type="text" id="searchStudentInput" placeholder="输入学生姓名" list="studentListDatalist">
+                <datalist id="studentListDatalist"></datalist>
+                <button id="searchStudentBtn" class="search-btn">搜索学员</button>
+                <div id="studentResultArea" class="student-result" style="display:none;"></div>
+            </div>
+            <div>
+                <button id="homeBtn" class="home-btn"><i class="fas fa-home"></i> 首页</button>
+            </div>
+        </div>
+
+        <div class="student-table-wrapper">
+            <table id="studentTable">
+                <thead>
+                    <tr><th>学生姓名</th><th>📅 当日出勤</th><th>📊 日常成绩</th><th>📚 作业提交</th><th>📖 考试 & 详情</th>比
+                </thead>
+                <tbody id="tableBody">...</tbody>
+            </table>
+        </div>
+        <footer><i class="fas fa-mobile-alt"></i> 点击日期切换记录日期 · 单击「详情」查看成绩曲线与各项一览 · 数据自动保存</footer>
+    </div>
+
+    <!-- 考试成绩管理模态框 -->
+    <div id="examModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3><i class="fas fa-pen-fancy"></i> 考试成绩 · <span id="modalStudentName"></span></h3><button id="closeModalBtn" class="icon-btn"><i class="fas fa-times"></i></button></div>
+            <div id="examListContainer"><div class="exam-list" id="pastExamsList">加载中...</div></div>
+            <hr><h4>➕ 新增考试</h4>
+            <div id="newExamForm">
+                <div class="form-row"><label>考试名称：</label><input type="text" id="examName" placeholder="例：期中考试"></div>
+                <div class="form-row"><label>考试日期：</label><input type="date" id="examDate"></div>
+                <div class="form-row"><label>试卷满分：</label><input type="number" id="examFullScore" value="100" step="1" min="0"></div>
+                <div class="form-row"><label>词汇得分：</label><input type="number" id="vocabScore" value="0" step="1" min="0"></div>
+                <div class="form-row"><label>语法得分：</label><input type="number" id="grammarScore" value="0" step="1" min="0"></div>
+                <div class="form-row"><label>阅读得分：</label><input type="number" id="readingScore" value="0" step="1" min="0"></div>
+                <div class="form-row"><label>听力得分：</label><input type="number" id="listeningScore" value="0" step="1" min="0"></div>
+                <div class="form-row"><label>总分（自动）：</label><input type="number" id="totalScoreAuto" readonly class="readonly-input"></div>
+                <button id="saveNewExamBtn" class="primary" style="width:100%">保存考试</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 学生详情模态框 -->
+    <div id="studentDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-chart-line"></i> 学生完整档案 · <span id="detailStudentName"></span></h3>
+                <button id="closeDetailModalBtn" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="detailContent">加载中...</div>
+            <div style="margin-top: 20px; text-align:center;">
+                <button id="exportSingleFromDetailBtn" class="small-btn primary"><i class="fas fa-download"></i> 导出该生所有数据(Excel)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件上传元素用于恢复数据 -->
+    <input type="file" id="restoreFileInput" accept=".json">
+
+    <script>
+        // ---------- 用户管理 ----------
+        const USERS_KEY = "teacher_users";
+        let currentUser = null;      // { username }
+        let appData = null;           // 当前用户的数据
+
+        // 初始化用户存储
+        function initUserStorage() {
+            if (!localStorage.getItem(USERS_KEY)) {
+                localStorage.setItem(USERS_KEY, JSON.stringify([]));
+            }
+        }
+
+        // 简单哈希（仅作演示）
+        function hashPassword(pwd) {
+            return btoa(pwd);
+        }
+
+        // 注册
+        function register(username, password) {
+            const users = JSON.parse(localStorage.getItem(USERS_KEY));
+            if (users.find(u => u.username === username)) {
+                return { success: false, msg: "用户名已存在" };
+            }
+            users.push({ username, passwordHash: hashPassword(password) });
+            localStorage.setItem(USERS_KEY, JSON.stringify(users));
+            // 创建该用户的数据
+            const defaultData = {
+                classes: [{ id: generateId(), name: "我的班级" }],
+                currentClassId: null,
+                students: [],
+                dailyRecords: [],
+                exams: []
+            };
+            defaultData.currentClassId = defaultData.classes[0].id;
+            saveUserData(username, defaultData);
+            return { success: true };
+        }
+
+        // 登录
+        function login(username, password) {
+            const users = JSON.parse(localStorage.getItem(USERS_KEY));
+            const user = users.find(u => u.username === username);
+            if (!user) return { success: false, msg: "用户不存在" };
+            if (user.passwordHash !== hashPassword(password)) return { success: false, msg: "密码错误" };
+            currentUser = { username };
+            loadUserData(username);
+            return { success: true };
+        }
+
+        // 保存用户数据
+        function saveUserData(username, data) {
+            localStorage.setItem(`userData_${username}`, JSON.stringify(data));
+        }
+
+        // 加载用户数据
+        function loadUserData(username) {
+            const stored = localStorage.getItem(`userData_${username}`);
+            if (stored) {
+                appData = JSON.parse(stored);
+                // 兼容旧数据
+                if (appData.dailyRecords) {
+                    appData.dailyRecords = appData.dailyRecords.map(rec => {
+                        if (rec.remark === undefined) rec.remark = "";
+                        return rec;
+                    });
+                }
+                if (appData.exams) {
+                    appData.exams = appData.exams.map(ex => {
+                        if (ex.fullScore === undefined) ex.fullScore = 100;
+                        return ex;
+                    });
+                }
+            } else {
+                // 新用户初始化
+                const defaultClass = { id: generateId(), name: "我的班级" };
+                appData = {
+                    classes: [defaultClass],
+                    currentClassId: defaultClass.id,
+                    students: [],
+                    dailyRecords: [],
+                    exams: []
+                };
+                const demoStudents = [
+                    { id: generateId(), classId: defaultClass.id, name: "示例学生1" },
+                    { id: generateId(), classId: defaultClass.id, name: "示例学生2" }
+                ];
+                appData.students = demoStudents;
+                const today = new Date().toISOString().slice(0,10);
+                demoStudents.forEach(s => {
+                    appData.dailyRecords.push({
+                        id: generateId(), studentId: s.id, date: today,
+                        attendance: "上课", dailyScore: "", homework: "提交", remark: ""
+                    });
+                });
+                saveUserData(username, appData);
+            }
+        }
+
+        // 保存当前用户数据
+        function persistAppData() {
+            if (currentUser) {
+                saveUserData(currentUser.username, appData);
+            }
+        }
+
+        function generateId() { return Date.now() + '-' + Math.random().toString(36).substr(2, 8); }
+
+        // 业务函数
+        function getCurrentStudents() { return appData.students.filter(s => s.classId === appData.currentClassId); }
+        function getDailyRecord(studentId, date) { return appData.dailyRecords.find(r => r.studentId === studentId && r.date === date); }
+        function ensureDailyRecord(studentId, date) {
+            let record = getDailyRecord(studentId, date);
+            if (!record) {
+                record = { id: generateId(), studentId, date, attendance: "上课", dailyScore: "", homework: "提交", remark: "" };
+                appData.dailyRecords.push(record);
+                persistAppData();
+            }
+            return record;
+        }
+        function updateDailyField(studentId, date, field, value) {
+            let record = getDailyRecord(studentId, date);
+            if (!record) {
+                record = { id: generateId(), studentId, date, attendance: "上课", dailyScore: "", homework: "提交", remark: "" };
+                appData.dailyRecords.push(record);
+            }
+            record[field] = value;
+            persistAppData();
+        }
+        function getStudentExams(studentId) { return appData.exams.filter(e => e.studentId === studentId).sort((a,b) => (b.date || '').localeCompare(a.date || '')); }
+        function addExam(studentId, examData) { appData.exams.push({ id: generateId(), studentId, ...examData }); persistAppData(); }
+        function deleteExam(examId) { appData.exams = appData.exams.filter(e => e.id !== examId); persistAppData(); }
+        function deleteStudent(studentId) {
+            appData.students = appData.students.filter(s => s.id !== studentId);
+            appData.dailyRecords = appData.dailyRecords.filter(r => r.studentId !== studentId);
+            appData.exams = appData.exams.filter(e => e.studentId !== studentId);
+            persistAppData();
+        }
+        function editStudentName(studentId, newName) { const s = appData.students.find(s => s.id === studentId); if(s) { s.name = newName; persistAppData(); } }
+        function addStudentToCurrentClass(name) {
+            if (!appData.currentClassId) { alert("请先创建或选择一个班级"); return false; }
+            if (getCurrentStudents().length >= 50) { alert("最多50名学生"); return false; }
+            appData.students.push({ id: generateId(), classId: appData.currentClassId, name: name.trim() });
+            persistAppData();
+            return true;
+        }
+        function getStudentClassName(studentId) {
+            const student = appData.students.find(s => s.id === studentId);
+            if (!student) return "未知班级";
+            const cls = appData.classes.find(c => c.id === student.classId);
+            return cls ? cls.name : "未知班级";
+        }
+
+        // 渲染表格
+        let currentDate = "";
+        function renderTable() {
+            const datePicker = document.getElementById("recordDate");
+            currentDate = datePicker ? datePicker.value : new Date().toISOString().slice(0,10);
+            if (!currentDate) currentDate = new Date().toISOString().slice(0,10);
+            const tbody = document.getElementById("tableBody");
+            const students = getCurrentStudents();
+            if (!appData.currentClassId || students.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">暂无学生，点击添加</td></tr>';
+                return;
+            }
+            let html = '';
+            students.forEach(student => {
+                const record = ensureDailyRecord(student.id, currentDate);
+                const attendanceOpts = ["上课","迟到","早退","看录播","停课","其他"];
+                const homeworkOpts = ["提交","未交","补交","其他"];
+                html += `<tr>
+                    <td class="student-name-cell"><div class="name-wrapper"><span class="name-text">${escapeHtml(student.name)}</span><div><button class="icon-btn edit-student" data-student-id="${student.id}"><i class="fas fa-pencil-alt"></i></button><button class="icon-btn delete-student" data-student-id="${student.id}"><i class="fas fa-trash"></i></button></div></div></td>
+                    <td><select class="attendance-select" data-student="${student.id}" data-date="${currentDate}">${attendanceOpts.map(o => `<option value="${o}" ${record.attendance===o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
+                    <td><input type="number" class="daily-score-input" data-student="${student.id}" data-date="${currentDate}" value="${record.dailyScore !== undefined && record.dailyScore !== "" ? record.dailyScore : ''}" step="1" style="width:80px" placeholder="分数"></td>
+                    <td><select class="homework-select" data-student="${student.id}" data-date="${currentDate}">${homeworkOpts.map(o => `<option value="${o}" ${record.homework===o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
+                    <td class="action-btns"><button class="small-btn exam-manage-btn" data-student-id="${student.id}" data-student-name="${escapeHtml(student.name)}"><i class="fas fa-chart-simple"></i> 考试</button><button class="small-btn detail-view-btn" data-student-id="${student.id}" data-student-name="${escapeHtml(student.name)}"><i class="fas fa-chart-line"></i> 详情</button><button class="small-btn export-student-btn" data-student-id="${student.id}" data-student-name="${escapeHtml(student.name)}"><i class="fas fa-download"></i> 导出</button></td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+            bindTableEvents();
+        }
+        function bindTableEvents() {
+            document.querySelectorAll('.attendance-select').forEach(sel => sel.addEventListener('change', e => updateDailyField(e.target.dataset.student, e.target.dataset.date, 'attendance', e.target.value)));
+            document.querySelectorAll('.homework-select').forEach(sel => sel.addEventListener('change', e => updateDailyField(e.target.dataset.student, e.target.dataset.date, 'homework', e.target.value)));
+            document.querySelectorAll('.daily-score-input').forEach(inp => inp.addEventListener('change', e => { let v = e.target.value.trim(); if(v==="") v=""; else if(isNaN(v)) v=""; else v=Number(v); updateDailyField(e.target.dataset.student, e.target.dataset.date, 'dailyScore', v); }));
+            document.querySelectorAll('.edit-student').forEach(btn => btn.addEventListener('click', (e) => { let id = btn.dataset.studentId; let s = appData.students.find(s=>s.id===id); if(s) { let newName = prompt("新姓名", s.name); if(newName && newName.trim()) { editStudentName(id, newName.trim()); renderTable(); renderClassSelect(); } } }));
+            document.querySelectorAll('.delete-student').forEach(btn => btn.addEventListener('click', (e) => { if(confirm("删除该生所有记录？")) { deleteStudent(btn.dataset.studentId); renderTable(); } }));
+            document.querySelectorAll('.exam-manage-btn').forEach(btn => btn.addEventListener('click', (e) => openExamModal(btn.dataset.studentId, btn.dataset.studentName)));
+            document.querySelectorAll('.export-student-btn').forEach(btn => btn.addEventListener('click', (e) => exportStudentToExcel(btn.dataset.studentId, btn.dataset.studentName)));
+            document.querySelectorAll('.detail-view-btn').forEach(btn => btn.addEventListener('click', (e) => openStudentDetail(btn.dataset.studentId, btn.dataset.studentName)));
+        }
+        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+        // 考试成绩模态框
+        let currentExamStudent = null;
+        function openExamModal(studentId, studentName) {
+            currentExamStudent = studentId;
+            document.getElementById("modalStudentName").innerText = studentName;
+            renderExamList(studentId);
+            document.getElementById("examModal").style.display = "flex";
+            document.getElementById("examName").value = "";
+            document.getElementById("examDate").value = new Date().toISOString().slice(0,10);
+            document.getElementById("examFullScore").value = 100;
+            document.getElementById("vocabScore").value = 0;
+            document.getElementById("grammarScore").value = 0;
+            document.getElementById("readingScore").value = 0;
+            document.getElementById("listeningScore").value = 0;
+            updateTotalScoreAuto();
+            const scoreInputs = ["vocabScore", "grammarScore", "readingScore", "listeningScore"];
+            scoreInputs.forEach(id => {
+                const el = document.getElementById(id);
+                el.removeEventListener('input', updateTotalScoreAuto);
+                el.addEventListener('input', updateTotalScoreAuto);
+            });
+        }
+        function updateTotalScoreAuto() {
+            const vocab = parseFloat(document.getElementById("vocabScore").value) || 0;
+            const grammar = parseFloat(document.getElementById("grammarScore").value) || 0;
+            const reading = parseFloat(document.getElementById("readingScore").value) || 0;
+            const listening = parseFloat(document.getElementById("listeningScore").value) || 0;
+            document.getElementById("totalScoreAuto").value = vocab + grammar + reading + listening;
+        }
+        function renderExamList(studentId) {
+            const exams = getStudentExams(studentId);
+            const container = document.getElementById("pastExamsList");
+            if(exams.length===0) { container.innerHTML = '<div style="padding:12px">暂无考试记录</div>'; return; }
+            let html = '';
+            exams.forEach(ex => {
+                const fullScore = ex.fullScore !== undefined ? ex.fullScore : 100;
+                const totalDisplay = (ex.totalScore !== null && ex.totalScore !== undefined) ? `${ex.totalScore}/${fullScore}` : '-';
+                html += `<div class="exam-item" style="background:#f9fafb;border-radius:20px;padding:12px;margin-bottom:10px">
+                            <div><strong>${escapeHtml(ex.examName)}</strong> (${ex.date||'无日期'})<br>
+                            总分: ${totalDisplay} | 词汇:${ex.vocabScore??'-'} 语法:${ex.grammarScore??'-'} 阅读:${ex.readingScore??'-'} 听力:${ex.listeningScore??'-'}</div>
+                            <button class="icon-btn delete-exam-btn" data-exam-id="${ex.id}" style="color:#b91c1c"><i class="fas fa-trash"></i></button>
+                        </div>`;
+            });
+            container.innerHTML = html;
+            document.querySelectorAll('.delete-exam-btn').forEach(btn => btn.addEventListener('click', (e) => { if(confirm("删除考试？")) { deleteExam(btn.dataset.examId); renderExamList(currentExamStudent); } }));
+        }
+        document.getElementById("saveNewExamBtn").addEventListener("click", () => {
+            if(!currentExamStudent) return;
+            let examName = document.getElementById("examName").value.trim();
+            if(!examName) { alert("请填写考试名称"); return; }
+            const fullScore = parseFloat(document.getElementById("examFullScore").value);
+            if(isNaN(fullScore) || fullScore <= 0) { alert("试卷满分必须为正数"); return; }
+            const vocab = parseFloat(document.getElementById("vocabScore").value) || 0;
+            const grammar = parseFloat(document.getElementById("grammarScore").value) || 0;
+            const reading = parseFloat(document.getElementById("readingScore").value) || 0;
+            const listening = parseFloat(document.getElementById("listeningScore").value) || 0;
+            const totalAuto = vocab + grammar + reading + listening;
+            addExam(currentExamStudent, {
+                examName,
+                date: document.getElementById("examDate").value || new Date().toISOString().slice(0,10),
+                fullScore: fullScore,
+                totalScore: totalAuto,
+                vocabScore: vocab,
+                grammarScore: grammar,
+                readingScore: reading,
+                listeningScore: listening
+            });
+            renderExamList(currentExamStudent);
+            document.getElementById("examName").value = "";
+            document.getElementById("vocabScore").value = 0;
+            document.getElementById("grammarScore").value = 0;
+            document.getElementById("readingScore").value = 0;
+            document.getElementById("listeningScore").value = 0;
+            updateTotalScoreAuto();
+        });
+        document.getElementById("closeModalBtn").addEventListener("click", () => document.getElementById("examModal").style.display = "none");
+
+        // 学生详情
+        let currentDetailStudentId = null;
+        let scoreChart = null;
+        function openStudentDetail(studentId, studentName) {
+            currentDetailStudentId = studentId;
+            document.getElementById("detailStudentName").innerText = studentName;
+            const container = document.getElementById("detailContent");
+            container.innerHTML = '<div style="text-align:center">加载数据中...</div>';
+            document.getElementById("studentDetailModal").style.display = "flex";
+            const allRecords = appData.dailyRecords.filter(r => r.studentId === studentId).sort((a,b)=>a.date.localeCompare(b.date));
+            const className = getStudentClassName(studentId);
+            let html = `
+                <div class="detail-section">
+                    <h4><i class="fas fa-calendar-check"></i> 出勤情况一览</h4>
+                    <table class="mini-table"><thead><tr><th>日期</th><th>班级名称</th><th>出勤状态</th><th>备注</th></tr></thead>
+                    <tbody>${allRecords.map(rec => `<tr><td>${rec.date}</td><td>${escapeHtml(className)}</td><td>${escapeHtml(rec.attendance)}</td><td><input type="text" class="remark-input" data-student="${studentId}" data-date="${rec.date}" value="${escapeHtml(rec.remark || '')}" placeholder="备注"></td></tr>`).join('') || '<tr><td colspan="4">暂无记录</td></tr>'}</tbody>
+                </table>
+                </div>
+                <div class="detail-section">
+                    <h4><i class="fas fa-chart-simple"></i> 日常成绩一览</h4>
+                    <table class="mini-table"><thead><tr><th>日期</th><th>班级名称</th><th>成绩</th><th>备注</th></tr></thead>
+                    <tbody>${allRecords.map(rec => `<tr><td>${rec.date}</td><td>${escapeHtml(className)}</td><td>${rec.dailyScore !== "" ? rec.dailyScore : '-'}</td><td><input type="text" class="remark-input" data-student="${studentId}" data-date="${rec.date}" value="${escapeHtml(rec.remark || '')}" placeholder="备注"></td></tr>`).join('') || '<tr><td colspan="4">暂无记录</td></tr>'}</tbody>
+                </table>
+                </div>
+                <div class="detail-section">
+                    <h4><i class="fas fa-book"></i> 作业提交一览</h4>
+                    <table class="mini-table"><thead><tr><th>日期</th><th>班级名称</th><th>提交状态</th><th>备注</th></tr></thead>
+                    <tbody>${allRecords.map(rec => `<tr><td>${rec.date}</td><td>${escapeHtml(className)}</td><td>${escapeHtml(rec.homework)}</td><td><input type="text" class="remark-input" data-student="${studentId}" data-date="${rec.date}" value="${escapeHtml(rec.remark || '')}" placeholder="备注"></td></tr>`).join('') || '<tr><td colspan="4">暂无记录</td></tr>'}</tbody>
+                </table>
+                </div>
+                <div class="detail-section"><h4><i class="fas fa-chart-line"></i> 历次考试成绩变化曲线图 (实际得分)</h4><div class="chart-container"><canvas id="scoreCurveCanvas" width="400" height="200" style="max-width:100%; height:auto;"></canvas></div>${getStudentExams(studentId).length === 0 ? '<div style="text-align:center">暂无考试数据</div>' : ''}</div>
+            `;
+            container.innerHTML = html;
+            document.querySelectorAll('.remark-input').forEach(inp => {
+                inp.addEventListener('change', (e) => {
+                    const sid = inp.dataset.student;
+                    const date = inp.dataset.date;
+                    const newRemark = inp.value;
+                    updateDailyField(sid, date, 'remark', newRemark);
+                });
+            });
+            const exams = getStudentExams(studentId).sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+            if(exams.length > 0) {
+                const labels = exams.map(e => e.examName.length>12 ? e.examName.slice(0,10)+'..' : e.examName);
+                const totalScores = exams.map(e => e.totalScore !== null ? e.totalScore : 0);
+                const ctx = document.getElementById('scoreCurveCanvas').getContext('2d');
+                if(scoreChart) scoreChart.destroy();
+                scoreChart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels, datasets: [{ label: '总分', data: totalScores, borderColor: '#2c6e9e', tension: 0.2, fill: false }] },
+                    options: { responsive: true, maintainAspectRatio: true }
+                });
+            }
+        }
+        function exportStudentFromDetail() {
+            if(currentDetailStudentId) {
+                const student = appData.students.find(s => s.id === currentDetailStudentId);
+                if(student) exportStudentToExcel(student.id, student.name);
+            }
+        }
+        document.getElementById("closeDetailModalBtn").addEventListener("click", () => document.getElementById("studentDetailModal").style.display = "none");
+        document.getElementById("exportSingleFromDetailBtn").addEventListener("click", exportStudentFromDetail);
+
+        // 导出单个学生Excel
+        function exportStudentToExcel(studentId, studentName) {
+            const dailyRecs = appData.dailyRecords.filter(r => r.studentId === studentId).sort((a,b)=>a.date.localeCompare(b.date));
+            const exams = getStudentExams(studentId);
+            const className = getStudentClassName(studentId);
+            const dailySheet = [["日期","班级名称","出勤状态","日常成绩","作业提交","备注"]];
+            dailyRecs.forEach(r => dailySheet.push([r.date, className, r.attendance, r.dailyScore !== "" ? r.dailyScore : "-", r.homework, r.remark || ""]));
+            const examSheet = [["考试名称","考试日期","试卷满分","总得分","词汇得分","语法得分","阅读得分","听力得分"]];
+            exams.forEach(e => examSheet.push([e.examName, e.date||"-", e.fullScore??100, e.totalScore??"-", e.vocabScore??"-", e.grammarScore??"-", e.readingScore??"-", e.listeningScore??"-"]));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dailySheet), "日常记录");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(examSheet), "考试成绩");
+            XLSX.writeFile(wb, `${studentName}_全记录.xlsx`);
+        }
+
+        // 导出整个班级
+        function exportClassToExcel() {
+            if(!appData.currentClassId) { alert("无班级"); return; }
+            const students = getCurrentStudents();
+            if(students.length === 0) { alert("班级没有学生"); return; }
+            const allDaily = [], allExams = [];
+            students.forEach(s => {
+                const dailyList = appData.dailyRecords.filter(r => r.studentId === s.id);
+                const className = getStudentClassName(s.id);
+                dailyList.forEach(r => allDaily.push({ 学生姓名: s.name, 日期: r.date, 班级名称: className, 出勤: r.attendance, 日常成绩: r.dailyScore !== "" ? r.dailyScore : "-", 作业提交: r.homework, 备注: r.remark || "" }));
+                const examList = getStudentExams(s.id);
+                examList.forEach(e => allExams.push({ 学生姓名: s.name, 考试名称: e.examName, 考试日期: e.date||"-", 试卷满分: e.fullScore??100, 总分: e.totalScore??"-", 词汇: e.vocabScore??"-", 语法: e.grammarScore??"-", 阅读: e.readingScore??"-", 听力: e.listeningScore??"-" }));
+            });
+            const dailySheetData = [["学生姓名","日期","班级名称","出勤","日常成绩","作业提交","备注"], ...allDaily.map(d=>[d.学生姓名,d.日期,d.班级名称,d.出勤,d.日常成绩,d.作业提交,d.备注])];
+            const examSheetData = [["学生姓名","考试名称","考试日期","试卷满分","总分","词汇","语法","阅读","听力"], ...allExams.map(e=>[e.学生姓名,e.考试名称,e.考试日期,e.试卷满分,e.总分,e.词汇,e.语法,e.阅读,e.听力])];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dailySheetData), "全班日常记录");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(examSheetData), "全班考试成绩");
+            const className = appData.classes.find(c=>c.id===appData.currentClassId)?.name || "班级";
+            XLSX.writeFile(wb, `${className}_完整数据.xlsx`);
+        }
+
+        // 班级管理
+        function renderClassSelect() {
+            const select = document.getElementById("classSelect");
+            select.innerHTML = '';
+            appData.classes.forEach(cls => { const opt = document.createElement("option"); opt.value = cls.id; opt.textContent = cls.name; if(appData.currentClassId === cls.id) opt.selected = true; select.appendChild(opt); });
+            if(appData.classes.length===0) select.innerHTML = '<option>请新建班级</option>';
+        }
+        function onClassChange() { const newId = document.getElementById("classSelect").value; if(newId) { appData.currentClassId = newId; persistAppData(); renderTable(); } }
+        function newClass() { let name = prompt("班级名称", "新班级"); if(name && name.trim()) { const id = generateId(); appData.classes.push({ id, name: name.trim() }); appData.currentClassId = id; persistAppData(); renderClassSelect(); renderTable(); } }
+        function deleteCurrentClass() { if(!appData.currentClassId) return; if(confirm("删除班级及所有学生数据？")) { const cid = appData.currentClassId; appData.classes = appData.classes.filter(c=>c.id!==cid); appData.students = appData.students.filter(s=>s.classId!==cid); appData.dailyRecords = appData.dailyRecords.filter(r=> !appData.students.some(s=>s.id===r.studentId)); appData.exams = appData.exams.filter(e=> !appData.students.some(s=>s.id===e.studentId)); if(appData.classes.length>0) appData.currentClassId = appData.classes[0].id; else appData.currentClassId = null; persistAppData(); renderClassSelect(); renderTable(); } }
+        function addStudentFlow() { if(!appData.currentClassId) { alert("先选择班级"); return; } let name = prompt("学生姓名"); if(name && name.trim()) { addStudentToCurrentClass(name.trim()); renderTable(); } }
+
+        // 搜索功能
+        function updateClassDatalist() {
+            const datalist = document.getElementById("classListDatalist");
+            datalist.innerHTML = '';
+            appData.classes.forEach(cls => {
+                const option = document.createElement("option");
+                option.value = cls.name;
+                datalist.appendChild(option);
+            });
+        }
+        function updateStudentDatalist() {
+            const datalist = document.getElementById("studentListDatalist");
+            datalist.innerHTML = '';
+            appData.students.forEach(student => {
+                const option = document.createElement("option");
+                option.value = student.name;
+                datalist.appendChild(option);
+            });
+        }
+        function searchClass() {
+            const input = document.getElementById("searchClassInput").value.trim();
+            if (!input) { alert("请输入班级名称"); return; }
+            const found = appData.classes.find(cls => cls.name === input);
+            if (found) {
+                appData.currentClassId = found.id;
+                persistAppData();
+                renderClassSelect();
+                renderTable();
+                document.getElementById("studentResultArea").style.display = "none";
+                document.getElementById("searchStudentInput").value = "";
+            } else {
+                alert(`未找到名为“${input}”的班级`);
+            }
+        }
+        function searchStudent() {
+            const input = document.getElementById("searchStudentInput").value.trim();
+            if (!input) { alert("请输入学生姓名"); return; }
+            const matchedStudents = appData.students.filter(s => s.name === input);
+            if (matchedStudents.length === 0) {
+                alert(`未找到学生“${input}”`);
+                document.getElementById("studentResultArea").style.display = "none";
+                return;
+            }
+            const resultArea = document.getElementById("studentResultArea");
+            resultArea.innerHTML = '';
+            matchedStudents.forEach(student => {
+                const classObj = appData.classes.find(c => c.id === student.classId);
+                if (classObj) {
+                    const itemDiv = document.createElement("div");
+                    itemDiv.className = "student-result-item";
+                    itemDiv.innerHTML = `
+                        <span>📌 ${escapeHtml(student.name)} - 班级：<strong>${escapeHtml(classObj.name)}</strong></span>
+                        <button class="class-link" data-class-id="${classObj.id}">跳转</button>
+                    `;
+                    resultArea.appendChild(itemDiv);
+                }
+            });
+            resultArea.style.display = "block";
+            resultArea.querySelectorAll('.class-link').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const targetClassId = btn.dataset.classId;
+                    if (targetClassId) {
+                        appData.currentClassId = targetClassId;
+                        persistAppData();
+                        renderClassSelect();
+                        renderTable();
+                        resultArea.style.display = "none";
+                        document.getElementById("searchStudentInput").value = "";
+                    }
+                });
+            });
+        }
+        function goHome() {
+            document.getElementById("searchClassInput").value = "";
+            document.getElementById("searchStudentInput").value = "";
+            document.getElementById("studentResultArea").style.display = "none";
+            renderTable();
+        }
+
+        // 备份数据（导出为JSON文件）
+        function backupData() {
+            if (!currentUser) return;
+            const dataToBackup = {
+                username: currentUser.username,
+                data: appData,
+                exportTime: new Date().toISOString()
+            };
+            const jsonStr = JSON.stringify(dataToBackup, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `日语教学助手_备份_${currentUser.username}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert("数据已导出，请保存好文件。");
+        }
+
+        // 恢复数据（从JSON文件导入）
+        function restoreData() {
+            if (!currentUser) return;
+            const fileInput = document.getElementById("restoreFileInput");
+            fileInput.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        const backup = JSON.parse(ev.target.result);
+                        if (!backup.username || !backup.data) {
+                            throw new Error("文件格式不正确");
+                        }
+                        if (backup.username !== currentUser.username) {
+                            alert(`备份文件属于用户“${backup.username}”，当前登录用户为“${currentUser.username}”，无法恢复。请切换账号后重试。`);
+                            fileInput.value = "";
+                            return;
+                        }
+                        // 确认覆盖
+                        if (confirm(`将用备份文件中的数据覆盖当前所有数据（班级、学生、成绩等），此操作不可撤销，是否继续？`)) {
+                            // 替换数据
+                            appData = backup.data;
+                            // 确保数据结构完整
+                            if (!appData.classes) appData.classes = [];
+                            if (!appData.students) appData.students = [];
+                            if (!appData.dailyRecords) appData.dailyRecords = [];
+                            if (!appData.exams) appData.exams = [];
+                            // 保存到 localStorage
+                            persistAppData();
+                            // 刷新界面
+                            renderClassSelect();
+                            renderTable();
+                            alert("数据恢复成功！");
+                        }
+                    } catch (err) {
+                        alert("恢复失败：文件格式错误或损坏");
+                        console.error(err);
+                    } finally {
+                        fileInput.value = "";
+                    }
+                };
+                reader.readAsText(file);
+            };
+            fileInput.click();
+        }
+
+        // 登录后初始化界面
+        function initMainApp() {
+            document.getElementById("authPanel").style.display = "none";
+            document.getElementById("mainApp").style.display = "block";
+            document.getElementById("currentUserDisplay").innerHTML = `<i class="fas fa-user"></i> ${currentUser.username}`;
+            renderClassSelect();
+            const today = new Date().toISOString().slice(0,10);
+            document.getElementById("recordDate").value = today;
+            document.getElementById("recordDate").addEventListener("change", () => renderTable());
+            document.getElementById("classSelect").addEventListener("change", onClassChange);
+            document.getElementById("newClassBtn").addEventListener("click", newClass);
+            document.getElementById("deleteClassBtn").addEventListener("click", deleteCurrentClass);
+            document.getElementById("addStudentBtn").addEventListener("click", addStudentFlow);
+            document.getElementById("exportClassBtn").addEventListener("click", exportClassToExcel);
+            document.getElementById("logoutBtn").addEventListener("click", logout);
+            document.getElementById("searchClassBtn").addEventListener("click", searchClass);
+            document.getElementById("searchStudentBtn").addEventListener("click", searchStudent);
+            document.getElementById("homeBtn").addEventListener("click", goHome);
+            document.getElementById("backupDataBtn").addEventListener("click", backupData);
+            document.getElementById("restoreDataBtn").addEventListener("click", restoreData);
+            updateClassDatalist();
+            updateStudentDatalist();
+            renderTable();
+        }
+
+        function logout() {
+            currentUser = null;
+            appData = null;
+            document.getElementById("authPanel").style.display = "block";
+            document.getElementById("mainApp").style.display = "none";
+            document.getElementById("loginUsername").value = "";
+            document.getElementById("loginPassword").value = "";
+            document.getElementById("regUsername").value = "";
+            document.getElementById("regPassword").value = "";
+            document.getElementById("regConfirm").value = "";
+            document.getElementById("loginError").innerText = "";
+            document.getElementById("regError").innerText = "";
+        }
+
+        // 登录/注册UI事件
+        function showLogin() {
+            document.getElementById("loginForm").style.display = "block";
+            document.getElementById("registerForm").style.display = "none";
+        }
+        function showRegister() {
+            document.getElementById("loginForm").style.display = "none";
+            document.getElementById("registerForm").style.display = "block";
+        }
+        document.getElementById("showRegisterBtn").addEventListener("click", showRegister);
+        document.getElementById("showLoginBtn").addEventListener("click", showLogin);
+        document.getElementById("loginBtn").addEventListener("click", () => {
+            const username = document.getElementById("loginUsername").value.trim();
+            const password = document.getElementById("loginPassword").value;
+            if (!username || !password) { document.getElementById("loginError").innerText = "用户名和密码不能为空"; return; }
+            const result = login(username, password);
+            if (result.success) {
+                initMainApp();
+            } else {
+                document.getElementById("loginError").innerText = result.msg;
+            }
+        });
+        document.getElementById("registerBtn").addEventListener("click", () => {
+            const username = document.getElementById("regUsername").value.trim();
+            const password = document.getElementById("regPassword").value;
+            const confirm = document.getElementById("regConfirm").value;
+            if (!username || !password) { document.getElementById("regError").innerText = "用户名和密码不能为空"; return; }
+            if (password !== confirm) { document.getElementById("regError").innerText = "两次密码不一致"; return; }
+            const result = register(username, password);
+            if (result.success) {
+                alert("注册成功，请登录");
+                showLogin();
+                document.getElementById("regError").innerText = "";
+            } else {
+                document.getElementById("regError").innerText = result.msg;
+            }
+        });
+
+        initUserStorage();
+        const savedUser = localStorage.getItem("currentUser");
+        if (savedUser) {
+            const user = JSON.parse(savedUser);
+            const users = JSON.parse(localStorage.getItem(USERS_KEY));
+            if (users.find(u => u.username === user.username)) {
+                currentUser = user;
+                loadUserData(user.username);
+                initMainApp();
+            } else {
+                localStorage.removeItem("currentUser");
+            }
+        } else {
+            document.getElementById("authPanel").style.display = "block";
+            document.getElementById("mainApp").style.display = "none";
+        }
+        window.addEventListener("beforeunload", () => {
+            if (currentUser) localStorage.setItem("currentUser", JSON.stringify({ username: currentUser.username }));
+            else localStorage.removeItem("currentUser");
+        });
+    </script>
+</body>
+</html>
