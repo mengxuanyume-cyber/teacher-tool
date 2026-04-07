@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>档案工坊 ⭐</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a1128;
+            font-family: 'Segoe UI', 'Poppins', 'Noto Sans JP', 'Roboto', sans-serif;
+            padding: 40px 24px;
+            color: #eef5ff;
+            background-image: radial-gradient(circle at 10% 20%, rgba(15, 30, 70, 0.9) 0%, #030617 100%);
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><circle cx="20" cy="30" r="1.5" fill="white" opacity="0.7"/><circle cx="150" cy="80" r="1" fill="white" opacity="0.5"/><circle cx="300" cy="50" r="2" fill="white" opacity="0.8"/><circle cx="500" cy="120" r="1.2" fill="white" opacity="0.6"/><circle cx="800" cy="60" r="1.8" fill="white" opacity="0.9"/><circle cx="1050" cy="200" r="2" fill="white" opacity="0.7"/><circle cx="80" cy="400" r="1.5" fill="white" opacity="0.5"/><circle cx="350" cy="650" r="2" fill="white" opacity="0.6"/><circle cx="700" cy="500" r="1.3" fill="white" opacity="0.8"/><circle cx="1100" cy="700" r="1.7" fill="white" opacity="0.7"/><circle cx="950" cy="350" r="1" fill="white" opacity="0.4"/></svg>');
+            background-repeat: repeat;
+            background-size: 300px;
+            pointer-events: none;
+            opacity: 0.25;
+            z-index: 0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+        .control-panel {
+            background: rgba(6, 18, 44, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2.5rem;
+            border: 1px solid rgba(64, 128, 255, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            align-items: flex-end;
+            justify-content: space-between;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .input-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: #b3e4ff;
+        }
+        .input-group input, .btn {
+            background: #0a1a3a;
+            border: 1px solid #2c5282;
+            padding: 0.6rem 1.2rem;
+            border-radius: 2rem;
+            color: white;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 8px #3b82f6;
+        }
+        .btn {
+            background: linear-gradient(135deg, #1e3a8a, #0f2c6b);
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            border: 1px solid #60a5fa;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #3b82f6, #1e3a8a);
+            transform: translateY(-2px);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #3b82f6;
+        }
+        .btn-outline:hover {
+            background: rgba(59,130,246,0.2);
+        }
+        .stats-badge {
+            background: #0f2c4e;
+            border-radius: 2rem;
+            padding: 0.4rem 1rem;
+            font-size: 0.8rem;
+        }
+        .students-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            justify-content: center;
+        }
+        .report-card {
+            width: 620px;
+            background: linear-gradient(145deg, #071a3a, #04102b);
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 20px 35px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(59,130,246,0.2);
+            backdrop-filter: blur(2px);
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .report-card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            background: rgba(0, 20, 60, 0.7);
+            padding: 1.2rem 1.8rem;
+            border-bottom: 2px solid #2b6cb0;
+            position: relative;
+        }
+        .student-name {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 2px;
+        }
+        .basic-info {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-top: 0.8rem;
+            font-size: 0.85rem;
+            color: #bfd9ff;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 1rem 0 0.8rem 0;
+            padding-left: 1rem;
+            border-left: 4px solid #3b82f6;
+            letter-spacing: 1px;
+        }
+        .score-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.8rem 0;
+            font-size: 0.85rem;
+        }
+        .score-table th, .score-table td {
+            padding: 0.5rem 0.4rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(72, 128, 200, 0.3);
+        }
+        .score-table th {
+            background: #0c2348;
+            color: #b9e2ff;
+        }
+        .trend-up { color: #4ade80; font-weight: bold; }
+        .trend-down { color: #f87171; font-weight: bold; }
+        .radar-container {
+            background: rgba(1, 10, 30, 0.5);
+            border-radius: 1.2rem;
+            padding: 0.8rem;
+            margin: 1rem 0;
+        }
+        canvas.radar-canvas {
+            max-height: 200px;
+            width: 100%;
+        }
+        .edit-field {
+            background: #03112b;
+            border-radius: 1rem;
+            padding: 0.6rem 0.8rem;
+            margin: 0.6rem 0;
+        }
+        .edit-field label {
+            font-size: 0.7rem;
+            color: #7ca9e0;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .edit-field input, .edit-field textarea {
+            width: 100%;
+            background: #0a1f3e;
+            border: 1px solid #2c5a8c;
+            border-radius: 1rem;
+            padding: 0.5rem 0.8rem;
+            color: white;
+            font-size: 0.85rem;
+            font-family: inherit;
+            word-wrap: break-word;
+            white-space: normal;
+            line-height: 1.4;
+            height: auto;
+            min-height: 36px;
+        }
+        .edit-field textarea {
+            resize: vertical;
+            min-height: 60px;
+            height: auto;
+        }
+        .card-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 1rem 1.5rem 1.5rem;
+        }
+        .small-btn {
+            background: #142d54;
+            border: none;
+            border-radius: 2rem;
+            padding: 0.4rem 1rem;
+            font-size: 0.7rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .small-btn:hover {
+            background: #2563eb;
+        }
+        .footer-note {
+            text-align: center;
+            margin-top: 3rem;
+            color: #6c86a8;
+            font-size: 0.75rem;
+        }
+        @media (max-width: 680px) {
+            .report-card { width: 95%; }
+            .control-panel { flex-direction: column; align-items: stretch; }
+        }
+        .btn-download-template {
+            background: linear-gradient(135deg, #0f4c5c, #0a3a48);
+            border-color: #2c9aaf;
+        }
+        .info-tip {
+            font-size: 0.7rem;
+            color: #8aaee0;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="control-panel">
+        <div class="input-group">
+            <label>👩‍🏫 授课教师</label>
+            <input type="text" id="teacherName" placeholder="例: 林 真理子" value="桜井 先生">
+        </div>
+        <div class="input-group">
+            <label>📂 上传Excel档案 (.xlsx)</label>
+            <input type="file" id="excelUpload" accept=".xlsx, .xls" style="display:none;">
+            <button class="btn" id="uploadBtn">📎 选择文件上传</button>
+        </div>
+        <div class="input-group">
+            <button class="btn btn-download-template" id="downloadTemplateBtn">📥 Excel模板下载</button>
+            <div class="info-tip">✨ 模板支持修改题型：添加“写作得分+写作满分”等列即可</div>
+        </div>
+        <div class="input-group">
+            <button class="btn btn-outline" id="downloadAllBtn">📦 导出全班档案 (ZIP)</button>
+        </div>
+        <div class="input-group">
+            <button class="btn btn-outline" id="deleteAllBtn">🗑️ 删除全班档案</button>
+        </div>
+        <div class="stats-badge" id="studentCountBadge">⚡ 等待上传数据</div>
+    </div>
+
+    <div id="studentsContainer" class="students-grid">
+        <div style="text-align: center; width: 100%; padding: 3rem;">✨ 请上传符合模板的Excel档案，生成专属星空档案 ✨</div>
+    </div>
+    <div class="footer-note">⭐ 点击卡片内「下载图片」单独保存 | 编辑「出勤详情/听写均分/综合建议」后下载即更新 | 雷达图根据得分率自动绘制 | <strong>题型完全自定义：Excel中包含任意“XXX得分”和对应“XXX满分”列即自动识别</strong></div>
+</div>
+
+<script>
+    let currentStudents = [];
+    let teacherInput = document.getElementById('teacherName');
+    let container = document.getElementById('studentsContainer');
+    let uploadInput = document.getElementById('excelUpload');
+    let uploadBtn = document.getElementById('uploadBtn');
+    let downloadAllBtn = document.getElementById('downloadAllBtn');
+    let downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
+    let studentCountSpan = document.getElementById('studentCountBadge');
+    let chartInstances = {};
+
+    // 解析分数和变化 (支持 "85(+5)" 或 "72(-3)" 或 "90")
+    function parseScoreAndChange(value) {
+        if (value === undefined || value === null || value === '') return { score: null, change: null };
+        let str = String(value).trim();
+        let match = str.match(/^([+-]?\d+(?:\.\d+)?)(?:\(([+-]\d+(?:\.\d+)?)\))?$/);
+        if (match) {
+            let score = parseFloat(match[1]);
+            let change = match[2] ? parseFloat(match[2]) : null;
+            return { score: isNaN(score) ? null : score, change: (change !== null && !isNaN(change)) ? change : null };
+        }
+        let num = parseFloat(str);
+        if (!isNaN(num)) return { score: num, change: null };
+        return { score: null, change: null };
+    }
+
+    // 核心解析：动态识别所有 "XXX得分" 与 "XXX满分" 列对
+    function parseExcelToStudents(dataRows, headers) {
+        let students = [];
+        // 必需列映射
+        let nameIdx = headers.findIndex(h => h.includes('学生姓名') || h === '姓名');
+        let classIdx = headers.findIndex(h => h.includes('班级编号') || h === '班级');
+        let attendIdx = headers.findIndex(h => h.includes('上课次数') || h === '出勤次数');
+        let totalScoreIdx = headers.findIndex(h => h.includes('总分') && h.includes('得分'));
+        let listeningAvgIdx = headers.findIndex(h => h.includes('听写平均分') || h === '日常听写均分');
+        let homeworkIdx = headers.findIndex(h => h.includes('作业提交') || h === '作业情况');
+        let attendanceDetailIdx = headers.findIndex(h => h.includes('出勤详情') || h === '出勤记录');
+        let suggestionIdx = headers.findIndex(h => h.includes('综合建议') || h === '建议' || h === '教师建议');
+
+        if (nameIdx === -1) throw new Error('Excel必须包含“学生姓名”列');
+        
+        // 动态收集题型: 寻找以 "得分" 结尾且不包含 "总分" 的列，并找对应 "满分" 列
+        let scoreColumns = [];
+        for (let i = 0; i < headers.length; i++) {
+            let col = headers[i];
+            if (col && typeof col === 'string' && col.includes('得分') && !col.includes('总分')) {
+                let typeName = col.replace('得分', '').trim();
+                if (typeName === "") continue;
+                // 寻找对应的满分列: 类型名+"满分"
+                let fullColName = typeName + '满分';
+                let fullIdx = headers.findIndex(h => h === fullColName);
+                if (fullIdx === -1) {
+                    console.warn(`题型 "${typeName}" 缺少对应的满分列 "${fullColName}"，将跳过该题型`);
+                    continue;
+                }
+                scoreColumns.push({
+                    typeName: typeName,
+                    scoreIdx: i,
+                    fullIdx: fullIdx,
+                });
+            }
+        }
+        
+        for (let rowIdx = 0; rowIdx < dataRows.length; rowIdx++) {
+            const row = dataRows[rowIdx];
+            if (!row[nameIdx] || String(row[nameIdx]).trim() === '') continue;
+            let student = {
+                name: String(row[nameIdx]).trim(),
+                classId: classIdx !== -1 ? String(row[classIdx] || '') : '未指定',
+                attendCount: attendIdx !== -1 ? row[attendIdx] : 0,
+                listeningAvg: listeningAvgIdx !== -1 ? row[listeningAvgIdx] : 75,
+                homeworkStatus: homeworkIdx !== -1 ? row[homeworkIdx] : '提交率90%',
+                attendanceDetail: attendanceDetailIdx !== -1 ? String(row[attendanceDetailIdx] || '全勤') : '全勤',
+                totalScoreRaw: totalScoreIdx !== -1 ? row[totalScoreIdx] : null,
+                totalScore: null,
+                totalChange: null,
+                subjects: [],
+                comment: suggestionIdx !== -1 && row[suggestionIdx] ? String(row[suggestionIdx]) : '继续保持努力，加强薄弱题型训练。'
+            };
+            // 总分解析
+            if (student.totalScoreRaw) {
+                let parsed = parseScoreAndChange(student.totalScoreRaw);
+                student.totalScore = parsed.score;
+                student.totalChange = parsed.change;
+            }
+            // 遍历动态题型
+            for (let s of scoreColumns) {
+                let scoreCell = row[s.scoreIdx];
+                let fullCell = row[s.fullIdx];
+                if (scoreCell === undefined || scoreCell === null || scoreCell === '') continue;
+                let parsedScore = parseScoreAndChange(scoreCell);
+                let scoreVal = parsedScore.score;
+                if (scoreVal === null) continue;
+                let fullVal = fullCell !== undefined && fullCell !== null ? parseFloat(fullCell) : null;
+                if (fullVal === null || isNaN(fullVal)) {
+                    console.warn(`${student.name} 题型 ${s.typeName} 满分无效，跳过`);
+                    continue;
+                }
+                student.subjects.push({
+                    name: s.typeName,
+                    score: scoreVal,
+                    fullScore: fullVal,
+                    change: parsedScore.change,
+                    rate: (scoreVal / fullVal) * 100
+                });
+            }
+            // 按得分率排序（可选，让雷达图更整齐）
+            student.subjects.sort((a,b) => a.name.localeCompare(b.name));
+            students.push(student);
+        }
+        return students;
+    }
+
+    function renderAllCards(students, teacher) {
+        container.innerHTML = '';
+        if (!students.length) {
+            container.innerHTML = '<div style="text-align: center; width: 100%; padding: 3rem;">📭 暂无学生数据，请上传正确的Excel文件</div>';
+            studentCountSpan.innerText = '👥 0 人';
+            return;
+        }
+        studentCountSpan.innerText = `👥 ${students.length} 人  · 星空档案已生成`;
+        students.forEach((student, idx) => {
+            const card = createStudentCard(student, teacher, idx);
+            container.appendChild(card);
+        });
+        students.forEach((student, idx) => {
+            initRadarChart(idx, student.subjects);
+        });
+    }
+
+    function createStudentCard(student, teacher, idx) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'report-card';
+        cardDiv.setAttribute('data-student-idx', idx);
+        
+        let totalDisplay = student.totalScore !== null ? `${student.totalScore} 分` : '--';
+        if (student.totalChange !== null && student.totalChange !== undefined) {
+            let changeClass = student.totalChange >= 0 ? 'trend-up' : 'trend-down';
+            let sign = student.totalChange >= 0 ? `+${student.totalChange}` : `${student.totalChange}`;
+            totalDisplay += ` <span class="${changeClass}">(${sign})</span>`;
+        }
+        
+        // 不再需要subjectsRows变量，因为表格结构已改为横向
+        
+        let rateListHtml = '<div style="font-size:0.75rem; margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">';
+        if (student.subjects.length) {
+            student.subjects.forEach(sub => {
+                rateListHtml += `<span style="background:#0f2d4f; padding:2px 8px; border-radius:20px;">${sub.name}: ${sub.rate.toFixed(0)}%</span>`;
+            });
+        } else {
+            rateListHtml += '<span style="background:#4a2f3f;">暂无题型得分率数据</span>';
+        }
+        rateListHtml += '</div>';
+        
+        cardDiv.innerHTML = `
+            <div class="card-header">
+                <div class="student-name">${escapeHtml(student.name)}</div>
+                <div class="basic-info">
+                    <span>📚 班级：${escapeHtml(student.classId)}</span>
+                    <span>👩‍🏫 授课教师：<span class="teacher-name-sync">${escapeHtml(teacher)}</span></span>
+                    <span>✅️ 上课次数：${student.attendCount ?? '-'}</span>
+                </div>
+            </div>
+            <div style="padding: 0 1.5rem;">
+                <div class="section-title">📊 考试成绩</div>
+                <table class="score-table">
+                    ${student.subjects.length === 0 ? 
+                        '<tr><td colspan="2" style="text-align:center;">⚠️ 未检测到题型数据，请确认Excel中包含“XXX得分”和对应“XXX满分”列</td></tr>' : 
+                        `
+                        <thead>
+                            <tr>
+                                <th>项目</th>
+                                ${student.subjects.map(sub => `<th>${escapeHtml(sub.name)}</th>`).join('')}
+                                <th>总分</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>得分/满分</td>
+                                ${student.subjects.map(sub => `<td>${sub.score} / ${sub.fullScore}</td>`).join('')}
+                                <td>${totalDisplay}</td>
+                            </tr>
+                        </tbody>
+                        `
+                    }
+                </table>
+                <div class="section-title">🎯 得分率雷达图</div>
+                <div class="radar-container">
+                    <canvas class="radar-canvas" id="radarCanvas_${idx}" width="400" height="200" style="width:100%; height:auto; max-height:200px"></canvas>
+                </div>
+                ${rateListHtml}
+                <div class="section-title">📋 日常表现 (可编辑)</div>
+                <div class="edit-field">
+                    <label>📅 出勤详情</label>
+                    <input type="text" class="attendance-detail-input" value="${escapeHtml(student.attendanceDetail)}" style="word-wrap: break-word; white-space: normal;">
+                </div>
+                <div class="edit-field">
+                    <label>📖 日常听写均分</label>
+                    <input type="text" class="dictation-input" value="${student.listeningAvg ?? '85'}" style="word-wrap: break-word; white-space: normal;">
+                </div>
+                <div class="edit-field">
+                    <label>✏️ 作业提交情况</label>
+                    <input type="text" class="homework-input" value="${escapeHtml(student.homeworkStatus)}" style="word-wrap: break-word; white-space: normal;">
+                </div>
+                <div class="section-title">💡 综合建议 </div>
+                <div class="edit-field">
+                    <textarea class="advice-textarea" style="word-wrap: break-word; white-space: normal; height: auto;">${escapeHtml(student.comment)}</textarea>
+                </div>
+            </div>
+        `;
+        
+        const attendanceInput = cardDiv.querySelector('.attendance-detail-input');
+        const dictationInput = cardDiv.querySelector('.dictation-input');
+        const homeworkInput = cardDiv.querySelector('.homework-input');
+        const adviceTextarea = cardDiv.querySelector('.advice-textarea');
+        
+        const updateStudentData = () => {
+            student.attendanceDetail = attendanceInput.value;
+            student.listeningAvg = dictationInput.value;
+            student.homeworkStatus = homeworkInput.value;
+            student.comment = adviceTextarea.value;
+        };
+        
+        // 自动调整textarea高度
+        const autoResizeTextarea = (textarea) => {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 300) + 'px';
+        };
+        
+        attendanceInput.addEventListener('input', updateStudentData);
+        dictationInput.addEventListener('input', updateStudentData);
+        homeworkInput.addEventListener('input', updateStudentData);
+        adviceTextarea.addEventListener('input', function() {
+            updateStudentData();
+            autoResizeTextarea(this);
+        });
+        
+        // 初始化时调整textarea高度
+        autoResizeTextarea(adviceTextarea);
+        
+        cardDiv.querySelector('.teacher-name-sync').innerText = teacher;
+        
+        // 创建外部容器，包含卡片和按键
+        const cardContainer = document.createElement('div');
+        cardContainer.style.display = 'flex';
+        cardContainer.style.flexDirection = 'column';
+        cardContainer.style.alignItems = 'center';
+        cardContainer.style.marginBottom = '1rem';
+        
+        // 创建按键容器
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'card-actions';
+        actionsContainer.style.display = 'flex';
+        actionsContainer.style.justifyContent = 'center';
+        actionsContainer.style.gap = '12px';
+        actionsContainer.style.marginTop = '1rem';
+        
+        // 创建下载按钮
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'small-btn download-single';
+        downloadBtn.textContent = '⬇️ 导出档案（PNG）';
+        downloadBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            updateStudentData();
+            try {
+                const canvasElem = document.getElementById(`radarCanvas_${idx}`);
+                if (canvasElem && chartInstances[idx]) chartInstances[idx].update();
+                
+                // 处理所有输入元素的显示问题：将input和textarea内容复制到普通div
+                const inputElements = cardDiv.querySelectorAll('.attendance-detail-input, .dictation-input, .homework-input, .advice-textarea');
+                const tempElements = [];
+                
+                // 遍历所有输入元素
+                inputElements.forEach(input => {
+                    const container = input.parentElement;
+                    const originalContent = input.value;
+                    const originalDisplay = input.style.display;
+                    
+                    // 创建临时div
+                    const tempDiv = document.createElement('div');
+                    tempDiv.style.width = '100%';
+                    tempDiv.style.minHeight = input.tagName === 'TEXTAREA' ? '60px' : '36px';
+                    tempDiv.style.padding = '0.5rem 0.8rem';
+                    tempDiv.style.background = '#0a1f3e';
+                    tempDiv.style.border = '1px solid #2c5a8c';
+                    tempDiv.style.borderRadius = '1rem';
+                    tempDiv.style.color = 'white';
+                    tempDiv.style.fontSize = '0.85rem';
+                    tempDiv.style.fontFamily = 'inherit';
+                    tempDiv.style.wordWrap = 'break-word';
+                    tempDiv.style.whiteSpace = 'normal';
+                    tempDiv.style.lineHeight = '1.4';
+                    tempDiv.textContent = originalContent;
+                    
+                    // 隐藏原始输入元素，显示临时div
+                    input.style.display = 'none';
+                    container.appendChild(tempDiv);
+                    
+                    // 保存临时元素信息，以便后续恢复
+                    tempElements.push({ input, tempDiv, originalDisplay });
+                });
+                
+                // 生成图片
+                const canvas = await html2canvas(cardDiv, { 
+                    scale: 2.5, 
+                    backgroundColor: '#04102b', 
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true
+                });
+                
+                // 恢复所有输入元素
+                tempElements.forEach(({ input, tempDiv, originalDisplay }) => {
+                    input.style.display = originalDisplay;
+                    tempDiv.parentElement.removeChild(tempDiv);
+                });
+                
+                const link = document.createElement('a');
+                link.download = `${student.name}_学习档案.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            } catch(err) { alert('生成失败：'+err); }
+        });
+        
+        // 创建删除按钮
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'small-btn delete-single';
+        deleteBtn.textContent = '🗑️ 删除档案';
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (confirm(`确定要删除 ${student.name} 的档案吗？`)) {
+                currentStudents.splice(idx, 1);
+                renderAllCards(currentStudents, teacherInput.value.trim() || '负责教师');
+            }
+        });
+        
+        // 组装容器
+        actionsContainer.appendChild(downloadBtn);
+        actionsContainer.appendChild(deleteBtn);
+        cardContainer.appendChild(cardDiv);
+        cardContainer.appendChild(actionsContainer);
+        
+        return cardContainer;
+    }
+    
+    function initRadarChart(idx, subjects) {
+        const canvas = document.getElementById(`radarCanvas_${idx}`);
+        if (!canvas) return;
+        if (chartInstances[idx]) chartInstances[idx].destroy();
+        const labels = subjects.map(s => s.name);
+        const rates = subjects.map(s => s.rate);
+        if (labels.length === 0) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = '#aaa';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('无题型数据，无法绘制雷达图', 10, 20);
+            return;
+        }
+        const ctx = canvas.getContext('2d');
+        chartInstances[idx] = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '得分率 (%)',
+                    data: rates,
+                    backgroundColor: 'rgba(59,130,246,0.3)',
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#60a5fa',
+                    pointBorderColor: '#ffffff',
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { stepSize: 20, color: '#cbd5e6', backdropColor: 'transparent' },
+                        grid: { color: 'rgba(100,150,230,0.3)' },
+                        angleLines: { color: 'rgba(100,150,230,0.2)' },
+                        pointLabels: { color: '#b9d6ff', font: { size: 10 } }
+                    }
+                },
+                plugins: {
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw.toFixed(1)}%` } },
+                    legend: { labels: { color: '#e2e8ff', font: { size: 10 } } }
+                }
+            }
+        });
+    }
+    
+    function syncTeacherToAllCards(teacherName) {
+        document.querySelectorAll('.teacher-name-sync').forEach(span => { span.innerText = teacherName; });
+    }
+    
+    async function downloadAllAsZip() {
+        if (!currentStudents.length) { alert('暂无学生档案，请先上传Excel'); return; }
+        const zip = new JSZip();
+        const cards = document.querySelectorAll('.report-card');
+        if (!cards.length) return;
+        let loadingToast = setTimeout(() => alert('批量生成中，请稍后...'), 100);
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+            const student = currentStudents[i];
+            if (!student) continue;
+            const attendanceVal = card.querySelector('.attendance-detail-input')?.value || student.attendanceDetail;
+            const dictVal = card.querySelector('.dictation-input')?.value || student.listeningAvg;
+            const homeworkVal = card.querySelector('.homework-input')?.value || student.homeworkStatus;
+            const adviceVal = card.querySelector('.advice-textarea')?.value || student.comment;
+            student.attendanceDetail = attendanceVal;
+            student.listeningAvg = dictVal;
+            student.homeworkStatus = homeworkVal;
+            student.comment = adviceVal;
+            try {
+                // 处理所有输入元素的显示问题：将input和textarea内容复制到普通div
+                const inputElements = card.querySelectorAll('.attendance-detail-input, .dictation-input, .homework-input, .advice-textarea');
+                const tempElements = [];
+                
+                // 遍历所有输入元素
+                inputElements.forEach(input => {
+                    const container = input.parentElement;
+                    const originalContent = input.value;
+                    const originalDisplay = input.style.display;
+                    
+                    // 创建临时div
+                    const tempDiv = document.createElement('div');
+                    tempDiv.style.width = '100%';
+                    tempDiv.style.minHeight = input.tagName === 'TEXTAREA' ? '60px' : '36px';
+                    tempDiv.style.padding = '0.5rem 0.8rem';
+                    tempDiv.style.background = '#0a1f3e';
+                    tempDiv.style.border = '1px solid #2c5a8c';
+                    tempDiv.style.borderRadius = '1rem';
+                    tempDiv.style.color = 'white';
+                    tempDiv.style.fontSize = '0.85rem';
+                    tempDiv.style.fontFamily = 'inherit';
+                    tempDiv.style.wordWrap = 'break-word';
+                    tempDiv.style.whiteSpace = 'normal';
+                    tempDiv.style.lineHeight = '1.4';
+                    tempDiv.textContent = originalContent;
+                    
+                    // 隐藏原始输入元素，显示临时div
+                    input.style.display = 'none';
+                    container.appendChild(tempDiv);
+                    
+                    // 保存临时元素信息，以便后续恢复
+                    tempElements.push({ input, tempDiv, originalDisplay });
+                });
+                
+                const canvasImg = await html2canvas(card, { 
+                    scale: 2.2, 
+                    backgroundColor: '#04102b',
+                    useCORS: true,
+                    allowTaint: true
+                });
+                
+                // 恢复所有输入元素
+                tempElements.forEach(({ input, tempDiv, originalDisplay }) => {
+                    input.style.display = originalDisplay;
+                    tempDiv.parentElement.removeChild(tempDiv);
+                });
+                
+                const imgData = canvasImg.toDataURL('image/png');
+                const base64Data = imgData.split(',')[1];
+                zip.file(`${student.name}_学习档案.png`, base64Data, { base64: true });
+            } catch(e) { console.warn(`下载${student.name}失败`, e); }
+        }
+        clearTimeout(loadingToast);
+        const content = await zip.generateAsync({ type: 'blob' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = `全班_日语档案_${new Date().toISOString().slice(0,19)}.zip`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+    
+    function downloadTemplateExcel() {
+        // 动态生成模板：包含基础列 + 通用题型示例（听力、阅读、语法、词汇、写作、基础知识）
+        const headers = [
+            "学生姓名", "班级编号", "上课次数", "总分得分(变化示例)", 
+            "听力得分", "听力满分", "阅读得分", "阅读满分", 
+            "语法得分", "语法满分", "词汇得分", "词汇满分",
+            "写作得分", "写作满分",      // 高考班示例
+            "基础知识得分", "基础知识满分", // 考研班示例
+            "日常听写平均分", "作业提交情况", "出勤详情", "综合建议"
+        ];
+        const exampleRow = [
+            "示例学生A", "高考冲刺1班", "32", "325(+8)",
+            "45", "50", "38", "40", 
+            "28", "30", "16", "20",
+            "22", "30",   // 写作得分/满分
+            "18", "25",   // 基础知识得分/满分
+            "86.5", "提交率95%，作业认真", "全勤（请假1次）", "写作能力提升空间大，继续积累素材。"
+        ];
+        const exampleRow2 = [
+            "示例学生B", "考研强化班", "28", "278(-12)",
+            "38", "50", "30", "40",
+            "22", "30", "12", "20",
+            "18", "30",
+            "20", "25",
+            "74.0", "作业提交率88%", "缺勤2次", "基础知识部分失分较多，建议系统复习。"
+        ];
+        const wsData = [headers, exampleRow, exampleRow2];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws['!cols'] = [{wch:12},{wch:14},{wch:10},{wch:18},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:14},{wch:18},{wch:12},{wch:22}];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "学生档案模板(自定义题型)");
+        // 添加一个说明sheet
+        const infoSheet = XLSX.utils.aoa_to_sheet([
+            ["【模板使用说明】"],
+            ["1. 你可以自由增加或删减题型列，只需保证每种题型同时有“XXX得分”和“XXX满分”两列。"],
+            ["2. 例如高考班可保留“写作得分/写作满分”，考研班可保留“基础知识得分/基础知识满分”，考级班可保留“听力/阅读/语法/词汇”。"],
+            ["3. 总分列支持变化标注，如“325(+8)”表示进步8分；“278(-12)”表示退步12分。题型得分同样支持变化标注。"],
+            ["4. 列名请勿修改基础列（学生姓名、班级编号、上课次数、日常听写平均分、作业提交情况、出勤详情、综合建议）。"],
+            ["5. 所有非数字文本会被正常显示。雷达图只基于数字题型绘制。"]
+        ]);
+        XLSX.utils.book_append_sheet(wb, infoSheet, "使用说明");
+        XLSX.writeFile(wb, "日语学生档案_自定义题型模板.xlsx");
+    }
+    
+    function handleExcelUpload(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+            if (!rows.length) { alert('Excel无数据'); return; }
+            const headers = rows[0].map(cell => String(cell || '').trim());
+            const dataRows = rows.slice(1);
+            try {
+                let students = parseExcelToStudents(dataRows, headers);
+                if (students.length === 0) throw new Error('未解析到有效学生，请检查模板格式或列名');
+                students = students.map(s => {
+                    if (!s.comment) s.comment = '查漏补缺，巩固语法与词汇。';
+                    if (!s.homeworkStatus) s.homeworkStatus = '作业完成良好';
+                    if (!s.attendanceDetail) s.attendanceDetail = '全勤';
+                    return s;
+                });
+                currentStudents = students;
+                let teacher = teacherInput.value.trim() || '未填写';
+                renderAllCards(currentStudents, teacher);
+            } catch(err) { alert('解析失败: '+err.message); console.error(err); }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    
+    uploadBtn.addEventListener('click', () => uploadInput.click());
+    uploadInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleExcelUpload(e.target.files[0]);
+        uploadInput.value = '';
+    });
+    teacherInput.addEventListener('input', (e) => {
+        syncTeacherToAllCards(e.target.value.trim() || '负责教师');
+    });
+    downloadAllBtn.addEventListener('click', downloadAllAsZip);
+    downloadTemplateBtn.addEventListener('click', downloadTemplateExcel);
+    
+    // 删除功能
+    const deleteAllBtn = document.getElementById('deleteAllBtn');
+    
+    deleteAllBtn.addEventListener('click', function() {
+        if (currentStudents.length === 0) {
+            alert('暂无学生档案');
+            return;
+        }
+        
+        if (confirm('确定要删除全班所有档案吗？此操作不可恢复。')) {
+            currentStudents = [];
+            renderAllCards(currentStudents, teacherInput.value.trim() || '负责教师');
+        }
+    });
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    console.log('✨ 支持任意题型：听力、阅读、语法、词汇、写作、基础知识等，只需在Excel中添加“题型得分+满分”列即可');
+</script>
+</body>
+</html>
